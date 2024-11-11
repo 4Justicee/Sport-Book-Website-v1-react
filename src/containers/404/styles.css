@@ -1,0 +1,14 @@
+.home {  
+    padding: 20px;  
+    background-color: #f0f8ff;  
+    text-align: center;  
+}  
+
+.home h1 {  
+    color: #0a4870;  
+}  
+
+.home p {  
+    color: #333;  
+    font-size: 16px;  
+}
