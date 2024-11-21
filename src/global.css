@@ -5610,5 +5610,55 @@ p {
 .page-link.selected{
   background: #456799 !important;
 }
+
+.stake-edit {
+  background:#000; 
+  color:#eee; 
+  flex:1;
+  width:50%; 
+  padding:8px 10px;
+  outline:none;
+}
+
+.pagination {  
+  list-style: none;  
+  display: flex;  
+  justify-content: center;  
+  padding: 0;  
+}  
+
+.pagination li {  
+  margin: 5px;  
+  cursor: pointer;  
+}  
+
+.pagination li a {  
+  text-decoration: none;  
+  padding: 8px 12px;  
+  border: 1px solid #ddd;  
+  color: #eee;  
+}  
+
+.pagination li.active a {  
+  color: white;  
+  background-color: #007b ff;  
+  border-color: #007bff;  
+}  
+
+.pagination li.disabled a {  
+  color: #333;  
+  cursor: not-allowed;  
+}  
+.detail-head-item {
+  margin-left:2rem;
+  padding:10px 0px; 
+  justify-content:space-between; 
+  display:flex;
+}
+.flex-center {
+  display:flex;
+  gap:1rem;
+  align-items:center;
+}
 /*Abstracts / reponsive*/
 /*CSS Table Of Content Ends End*//*# sourceMappingURL=main.css.map */

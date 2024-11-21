@@ -1,8 +1,13 @@
-import React from 'react';  
+import React, { useEffect } from 'react';  
+import ReactPaginate from 'react-paginate';  
+
 import { useSelector, useDispatch } from 'react-redux'; 
 import { get1X2, getMatchGoals, getHandicaps } from '../../utils/oddUtils';
 import { formatSeconds } from '../../utils/dateUtils';
 import { getStarOff, getStarOn } from '../../utils/otherUtils';
+import { toast } from 'react-toastify';
+import { updateCurrentBets, setDetailInfo } from '../../store/matchSlice';
+import { sendMessage } from '../../store/socket';
 
 const options = {   
     month: '2-digit',   
@@ -12,7 +17,11 @@ const options = {
 };  
   
 
-const Match = React.memo(({ data, type }) => {       
+const Match = React.memo(({ data, type }) => {
+    const dispatch = useDispatch();
+    const currentBets = useSelector(state => state.match.currentBets);
+    const bet_ids = currentBets.map((item)=>item.match_id+"-"+item.bet_id);
+
     const {home_name, away_name, home_image_id, away_image_id, id, league_name, time_str, time, ss, is_fav, passed_second, data: odds, updated_at} = data;
 
     let hwin = -1, draw = -1, awin = -1, overodd = -1, goal = -1, underodd = -1; 
@@ -64,12 +73,35 @@ const Match = React.memo(({ data, type }) => {
         scores = (ss == null) ? "0-0" : data['ss'];
     }
 
-    const starElem = (is_fav == 0) ? <img className='star-off hand inplay_likestar' src={getStarOn()} width='24' d1="l"/>:<img className="hand inplay_removestar" src={getStarOff()} width='22'/>;
+    const starElem = (is_fav == 0) ? <img className='star-off hand inplay_likestar' src={getStarOff()} width='24' d1="l"/>:<img className="hand inplay_removestar" src={getStarOn()} width='22'/>;
     const utcDate = new Date(time_str);  
     const localTimeString = utcDate.toLocaleString(undefined, options);
 
-    const clickBetButton = (match, team_name, market_name, match_id, bet_id, odd, d1)=>{
+    const detailView = (match_id) => {
+        dispatch(setDetailInfo({
+            match_id,
+            type,
+            detail: 'on' ,
+            page: 'detail'          
+        }));
+    }
 
+    const clickBetButton = (match, team_name, market_name, match_id, bet_id, odd, d1)=>{
+        if(odd == -1) {
+            toast.error('Can not place bet on this match!'); 
+            return;
+        }
+
+        dispatch(updateCurrentBets({
+            type,
+            match,
+            team_name,
+            market_name,
+            match_id,
+            bet_id,
+            odd,
+            d1
+        }))
     }
 
     return (
@@ -105,30 +137,30 @@ const Match = React.memo(({ data, type }) => {
             <div className='start__box'>{starElem}</div>
             <div className="mart__point__two mart__pint__nextgo">
                 <div className="mart__point__left">
-                    <a href="#box" className="point__box homewin" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, home_name, 'Fulltime Result', id, hid, hwin, "")} >
+                    <a href="#box" className={`point__box homewin bet-btn ${bet_ids.includes(id+"-"+hid) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, home_name, 'Fulltime Result', id, hid, hwin, "")} >
                     {hwin == -1 ? <i className="icon-lock"></i>: <><span className="point__1">1</span><span>{hwin}</span></>}                                
                     </a>
-                    <a href="#box" className="point__box draw" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, "Draw", 'Fulltime Result', id, did, draw, "")} >
+                    <a href="#box" className={`point__box draw bet-btn ${bet_ids.includes(id+"-"+did) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, "Draw", 'Fulltime Result', id, did, draw, "")} >
                         {draw == -1 ? <i className="icon-lock"></i>: <><span className="point__1">X</span><span>{draw}</span></>}
                     </a>
-                    <a href="#box" className="point__box awaywin" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, away_name, 'Fulltime Result', id, aid, awin, "")} >
+                    <a href="#box" className={`point__box awaywin bet-btn ${bet_ids.includes(id+"-"+aid) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, away_name, 'Fulltime Result', id, aid, awin, "")} >
                         {awin == -1 ? <i className="icon-lock"></i>: <><span className="point__1">2</span><span>{awin}</span></>}                  
                     </a>
-                    <a href="#box" className="point__box goalover" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, '', 'Match Goals', id, oid, overodd, "Over")} >
+                    <a href="#box" className={`point__box goalover bet-btn ${bet_ids.includes(id+"-"+oid) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, '', 'Match Goals', id, oid, overodd, "Over")} >
                         {goal == -1 ? <i className="icon-lock"></i>:<><span className="point__1">{goal}&nbsp;Over</span><span>{overodd}</span></>}                  
                     </a>
-                    <a href="#box" className="point__box goalunder" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, '', 'Match Goals', id, uid, underodd, "Under")} >
+                    <a href="#box" className={`point__box goalunder bet-btn ${bet_ids.includes(id+"-"+uid) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, '', 'Match Goals', id, uid, underodd, "Under")} >
                         {goal == -1 ? <i className="icon-lock"></i>: <><span className="point__1">{goal}&nbsp;Under</span><span>{underodd}</span></>}                  
                     </a>
-                    <a href="#box" className="point__box hodd1" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, home_name, 'Asian Handicap', id, id1, hodd1, handi1)}>
+                    <a href="#box" className={`point__box hodd1 bet-btn ${bet_ids.includes(id+"-"+id1) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, home_name, 'Asian Handicap', id, id1, hodd1, handi1)}>
                         {hodd1 == -1 ? <i className="icon-lock"></i>: <><span className="point__1">{handi1}</span><span>{hodd1}</span></>}                  
                     </a>
-                    <a href="#box" className="point__box hodd2" onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, away_name, 'Asian Handicap', id, id2, hodd2, handi2)}>
+                    <a href="#box" className={`point__box hodd2 bet-btn ${bet_ids.includes(id+"-"+id2) ? 'selected' : ''}`} onClick={()=>clickBetButton(`${home_name} vs ${away_name}`, away_name, 'Asian Handicap', id, id2, hodd2, handi2)}>
                         {hodd2 == -1 ? <i className="icon-lock"></i>: <><span className="point__1">{handi2}</span><span>{hodd2}</span></>}                  
                     </a>            
                 </div>
                 
-                <div className="mart__point__right prematch_detail_view_btn hand" tid="${id}">                    
+                <div className="mart__point__right prematch_detail_view_btn hand" onClick={()=>detailView(id)}>                    
                     <a href="#min" className="point__box-text point__box__nextto">
                         {type == "prematch" &&<span className='timestr'>{localTimeString}</span> }
                         <span className='icon'><i className="fas fa-angle-right"></i></span>
@@ -138,11 +170,37 @@ const Match = React.memo(({ data, type }) => {
         </div>);  
 }); 
 
-const RealContent = ({type}) => {  
-    const dispatch = useDispatch();
+const RealContent = ({type}) => {      
+    const token = useSelector(state => state.match.token)
     const liveData = useSelector(state => state.match.liveData);
     const prematchData = useSelector(state => state.match.prematchData); 
+    const page = useSelector(state => state.match.page); 
+    const lastLSport = useSelector(state => state.match.lastLSport); 
+    const lastPSport = useSelector(state => state.match.lastPSport); 
+
     const data = type == "live" ? liveData.data: prematchData.data;
+    const count = type == "live" ? liveData.count: prematchData.count;
+    const [pageCount, setPageCount] = React.useState(0);  
+
+    useEffect(()=>{
+        const page = Math.ceil(count / 10);
+        setPageCount(page)
+    },[count])
+
+
+    const handlePageClick = (data) => {  
+        sendMessage({
+            token: token,
+            page:'sport', 
+            live:type=='live'?'on':'off', 
+            lsport:type=='live'?lastLSport:0, 
+            prematch:type=='prematch'?'on':'off', 
+            psport:type=='prematch'?lastPSport:0, 
+            detail_id:0, 
+            data1:data.selected+1,
+            data2:""
+        });
+    };  
 
     return (  
         <div className="height__table">
@@ -156,6 +214,20 @@ const RealContent = ({type}) => {
                         </div>
                     </div>
                 </div>
+                {page != "home" && <div style={{marginTop:"1rem"}}>  
+                    {/* Display your data */}  
+                    <ReactPaginate  
+                        previousLabel={'Previous'}  
+                        nextLabel={'Next'}  
+                        breakLabel={'...'}  
+                        pageCount={pageCount}  
+                        marginPagesDisplayed={2}  
+                        pageRangeDisplayed={5}  
+                        onPageChange={handlePageClick}  
+                        containerClassName={'pagination'}  
+                        activeClassName={'active'}  
+                    />  
+                </div> }
             </div>
         </div>   
     );  

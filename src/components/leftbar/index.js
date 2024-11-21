@@ -1,7 +1,8 @@
 import React from 'react';  
-import { useSelector } from 'react-redux'; 
+import { useSelector, useDispatch } from 'react-redux'; 
 import { useState } from 'react';
 import { sendMessage } from '../../store/socket';
+import { setPageInfo, setLastLSport, setLastPSport } from '../../store/matchSlice';
 
 const PopularMatches = React.memo(({ name, src }) => {  
     return (
@@ -11,15 +12,43 @@ const PopularMatches = React.memo(({ name, src }) => {
     </li>);  
 });  
 
-const Matches = React.memo(({ name, count, icon, png }) => {  
+const Matches = React.memo(({ name, count, icon, png, sid, type }) => {  
+    const token = useSelector(state => state.match.token)
+    const dispatch = useDispatch()
+
     let elem = <i className={`icon-${icon}`}></i>;
     if(png == true) {
         elem = <img src={`/assets/img/sports/${icon}.png`} width='20' style={{filter:"invert(1) brightness(0.6) !important"}} />;
     }
+
+    const loadSport = ()=>{
+        dispatch(setPageInfo({
+            page:'sport', 
+            live:type=='live'?'on':'off', 
+            prematch:type=='prematch'?'on':'off', 
+            detail: "off",
+            detail_id: 0,
+            detail_type: "live",
+        }))
+        type == "live" ? dispatch(setLastLSport(sid)) : dispatch(setLastPSport(sid));
+        
+        sendMessage({
+            token: token,
+            page:'sport', 
+            live:type=='live'?'on':'off', 
+            lsport:type=='live'?sid:0, 
+            prematch:type=='prematch'?'on':'off', 
+            psport:type=='prematch'?sid:0, 
+            detail_id:0, 
+            data1:"1",
+            data2:""
+        });
+    }
+    
     return (
         <div className="accordion-item select-sport">
             <h2 className="accordion-header">
-                <button className="accordion-button " type="button">
+                <button className="accordion-button " type="button" onClick={()=>loadSport()}>
                     <span className="d-flex align-items-center gap-2 left-chokoboko">
                         <span className="mt-1">{elem}</span>
                         <span className="score text-white">{name}</span>
@@ -69,7 +98,7 @@ const LeftBar = () => {
                         <div className="prematch__scopre this____parent__remove sidebar-livematch">
                             <div className="accordion" >
                             {games?.totalLive?.map((item, idx) => (  
-                                <Matches key={idx} name={item.sport_name} count={item.total_count} icon={item.icon} png={item.png} />  
+                                <Matches key={idx} name={item.sport_name} count={item.total_count} icon={item.icon} png={item.png} sid={item.sport_id} type='live'/>  
                             ))} 
                             </div>
                         </div>
@@ -78,7 +107,7 @@ const LeftBar = () => {
                         <div className="prematch__scopre this____parent__remove sidebar-livematch">
                             <div className="accordion">
                             {games?.totalPrematch?.map((item, idx) => (  
-                                <Matches key={idx} name={item.sport_name} count={item.total_count} icon={item.icon} png={item.png} />  
+                                <Matches key={idx} name={item.sport_name} count={item.total_count} icon={item.icon} png={item.png} sid={item.sport_id} type='prematch'/>  
                             ))} 
                             </div>
                         </div>

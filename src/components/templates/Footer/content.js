@@ -5,7 +5,7 @@ import FooterInfo from './info';
 
 const ContentFooter = () => {  
     return (  
-        <footer className="footer__section main__footer__section media991__pb60 pt-60">
+        <footer className="footer__section main__footer__section media991__pb60 pt-60 mt__30">
             <div className="container-fluid p-0">
                 <FooterInfo />
                 <SponsorCarousel/>
